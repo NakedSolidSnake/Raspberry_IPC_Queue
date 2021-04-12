@@ -1,14 +1,3 @@
-/**
- * @file queue.c
- * @author Cristiano Silva de Souza (cristianosstec@gmail.com)
- * @brief 
- * @version 0.1.0
- * @date 2020-02-06
- * 
- * @copyright Copyright (c) 2020
- * 
- */
-
 #include <stdlib.h>
 #include <stdio.h>
 #include <errno.h>
@@ -16,28 +5,47 @@
 #include <sys/msg.h>
 #include <queue.h>
 
-int queue_init(int id)
+bool Queue_Init(Queue_t *queue)
 {
-  return msgget((key_t)id, 0666 | IPC_CREAT);
+  bool status = false;
+  
+  do 
+  {
+    if (!queue)
+      break;
+
+    queue->id = msgget((key_t)queue->key, 0666 | IPC_CREAT);
+    if (queue->id == -1)
+      break;
+
+    status = true;
+  } while(false);
+  
+  return status;
 }
 
-int queue_send(int queue_id, const queue_st *data, const int bSize)
+bool Queue_Send(Queue_t *queue, const Queue_Data *data, const int buffer_size)
 {
-  if(bSize <= 0)
-    return -1;
-
-  return msgsnd(queue_id, (void *)data, bSize, 0);
+  bool status = true;
+  if (msgsnd(queue->id, (void *)data, buffer_size, 0) == -1)
+    status = false;
+  return status;
 }
 
-int queue_recv(int queue_id, queue_st *data, const int bSize)
+bool Queue_Receive(Queue_t *queue, Queue_Data *data, const int buffer_size)
 {
-  if(!data)
-    return -1;
+  bool status = true;
+  if(msgrcv(queue->id, (void *)data, buffer_size, data->type, 0) == -1)
+    status = false;
 
-  return msgrcv(queue_id, (void *)data, bSize, data->queueType, 0);
+  return status;
 }
 
-int queue_destroy(int queue_id)
+bool Queue_Destroy(Queue_t *queue)
 {
-  return msgctl(queue_id, IPC_RMID, 0);
+  bool status = true;
+  if( msgctl(queue->id, IPC_RMID, 0) == -1)
+    status = false;
+  
+  return status;
 }

@@ -1,47 +1,28 @@
-#ifndef __QUEUE_H
-#define __QUEUE_H
+#ifndef QUEUE_H_
+#define QUEUE_H_
 
-#define BSIZE   4096
+#include <stdbool.h>
 
-typedef struct queue{
-  long int queueType;
-  char bData[BSIZE];
-}queue_st;
+#define BUFFER_SIZE 1024
 
-/**
- * @brief 
- * 
- * @param id 
- * @return int 
- */
-int queue_init(int id);
+typedef struct 
+{
+  long type;
+  char buffer[BUFFER_SIZE];
+} Queue_Data;
 
-/**
- * @brief 
- * 
- * @param queue_id 
- * @param data 
- * @param bSize 
- * @return int 
- */
-int queue_send(int queue_id, const queue_st *data, const int bSize);
+typedef struct
+{
+  int key;
+  int id;
+} Queue_t;
 
-/**
- * @brief 
- * 
- * @param queue_id 
- * @param data 
- * @param bSize 
- * @return int 
- */
-int queue_recv(int queue_id, queue_st *data, const int bSize);
+bool Queue_Init(Queue_t *queue);
 
-/**
- * @brief 
- * 
- * @param queue_id 
- * @return int 
- */
-int queue_destroy(int queue_id);
+bool Queue_Send(Queue_t *queue, const Queue_Data *data, const int buffer_size);
 
-#endif
+bool Queue_Receive(Queue_t *queue, Queue_Data *data, const int buffer_size);
+
+bool Queue_Destroy(Queue_t *queue);
+
+#endif /* QUEUE_H_ */
