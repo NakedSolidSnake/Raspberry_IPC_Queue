@@ -17,6 +17,22 @@
 
 #define _1ms    1000
 
+static void wait_press(void *object, Button_Interface *button)
+{
+    while (true)
+    {
+        if (!button->Read(object))
+        {
+            usleep(_1ms * 100);
+            break;
+        }
+        else
+        {
+            usleep(_1ms);
+        }
+    }
+}
+
 bool Button_Run(void *object, Queue_Context *queue_context, Button_Interface *button)
 {
     int state = 0;
@@ -29,15 +45,7 @@ bool Button_Run(void *object, Queue_Context *queue_context, Button_Interface *bu
 
     while(true)
     {
-        while(true)
-        {
-            if(!button->Read(object)){
-                usleep(_1ms * 100);
-                break;
-            }else{
-                usleep( _1ms );
-            }
-        }
+        wait_press(object, button);
 
         state ^= 0x01;
         memset(queue_context->data.buffer, 0, queue_context->buffer_size);

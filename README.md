@@ -2,284 +2,164 @@
   <img src="https://www.tutorialspoint.com/inter_process_communication/images/message_queue.jpg">
 </p>
 
-# Queue
+# _Queue System V_
+
+## Tópicos
+* [Introdução](#introdução)
+* [Implementação](#implementação)
+* [launch_processes](#launch_processes)
+* [button_interface](#button_interface)
+* [led_interface](#led_interface)
+* [Compilando, Executando e Matando os processos](#compilando-executando-e-matando-os-processos)
+* [Compilando](#compilando)
+* [Clonando o projeto](#clonando-o-projeto)
+* [Selecionando o modo](#selecionando-o-modo)
+* [Modo PC](#modo-pc)
+* [Modo RASPBERRY](#modo-raspberry)
+* [Executando](#executando)
+* [Interagindo com o exemplo](#interagindo-com-o-exemplo)
+* [MODO PC](#modo-pc-1)
+* [MODO RASPBERRY](#modo-raspberry-1)
+* [Matando os processos](#matando-os-processos)
+* [Conclusão](#conclusão)
+* [Referência](#referência)
+
 ## Introdução
+Preencher
+
 ## Implementação
-### Biblioteca
-#### queue.h
+
+Para demonstrar o uso desse IPC, iremos utilizar o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado interno no arquivo, e o Consumidor(_led_process_) vai ler o estado interno e vai aplicar o estado para si. Aplicação é composta por três executáveis sendo eles:
+* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
+* _button_interface_ - é reponsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado interno no arquivo
+* _led_interface_ - é reponsável por ler do arquivo o estado interno do botão e aplicar em um GPIO configurado como saída
+
+### *launch_processes*
+
+No _main_ criamos duas variáveis para armazenar o PID do *button_process* e do *led_process*, e mais duas variáveis para armazenar o resultado caso o _exec_ venha a falhar.
 ```c
-#ifndef __QUEUE_H
-#define __QUEUE_H
-
-#define BSIZE   4096
-
-typedef struct queue{
-  long int queueType;
-  char bData[BSIZE];
-}queue_st;
-
-/**
- * @brief 
- * 
- * @param id 
- * @return int 
- */
-int queue_init(int id);
-
-/**
- * @brief 
- * 
- * @param queue_id 
- * @param data 
- * @param bSize 
- * @return int 
- */
-int queue_send(int queue_id, const queue_st *data, const int bSize);
-
-/**
- * @brief 
- * 
- * @param queue_id 
- * @param data 
- * @param bSize 
- * @return int 
- */
-int queue_recv(int queue_id, queue_st *data, const int bSize);
-
-/**
- * @brief 
- * 
- * @param queue_id 
- * @return int 
- */
-int queue_destroy(int queue_id);
-
-#endif
-
+int pid_button, pid_led;
+int button_status, led_status;
 ```
-#### queue.c
+
+Em seguida criamos um processo clone, se processo clone for igual a 0, criamos um _array_ de *strings* com o nome do programa que será usado pelo _exec_, em caso o _exec_ retorne, o estado do retorno é capturado e será impresso no *stdout* e aborta a aplicação. Se o _exec_ for executado com sucesso o programa *button_process* será carregado. 
 ```c
-/**
- * @file queue.c
- * @author Cristiano Silva de Souza (cristianosstec@gmail.com)
- * @brief 
- * @version 0.1.0
- * @date 2020-02-06
- * 
- * @copyright Copyright (c) 2020
- * 
- */
+pid_button = fork();
 
-#include <stdlib.h>
-#include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
-#include <sys/msg.h>
-#include <queue.h>
-
-int queue_init(int id)
+if(pid_button == 0)
 {
-  return msgget((key_t)id, 0666 | IPC_CREAT);
-}
-
-int queue_send(int queue_id, const queue_st *data, const int bSize)
-{
-  if(bSize <= 0)
-    return -1;
-
-  return msgsnd(queue_id, (void *)data, bSize, 0);
-}
-
-int queue_recv(int queue_id, queue_st *data, const int bSize)
-{
-  if(!data)
-    return -1;
-
-  return msgrcv(queue_id, (void *)data, bSize, data->queueType, 0);
-}
-
-int queue_destroy(int queue_id)
-{
-  return msgctl(queue_id, IPC_RMID, 0);
-}
-
+    //start button process
+    char *args[] = {"./button_process", NULL};
+    button_status = execvp(args[0], args);
+    printf("Error to start button process, status = %d\n", button_status);
+    abort();
+}   
 ```
-### launch_processes.c
+
+O mesmo procedimento é repetido novamente, porém com a intenção de carregar o *led_process*.
+
 ```c
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
+pid_led = fork();
 
-int main(int argc, char *argv[])
+if(pid_led == 0)
 {
-    int pid_button, pid_led;
-    int button_status, led_status;
-
-    pid_button = fork();
-
-    if(pid_button == 0)
-    {
-        //start button process
-        char *args[] = {"./button_process", NULL};
-        button_status = execvp(args[0], args);
-        printf("Error to start button process, status = %d\n", button_status);
-        abort();
-    }   
-
-    pid_led = fork();
-
-    if(pid_led == 0)
-    {
-        //Start led process
-        char *args[] = {"./led_process", NULL};
-        led_status = execvp(args[0], args);
-        printf("Error to start led process, status = %d\n", led_status);
-        abort();
-    }
-
-    return EXIT_SUCCESS;
+    //Start led process
+    char *args[] = {"./led_process", NULL};
+    led_status = execvp(args[0], args);
+    printf("Error to start led process, status = %d\n", led_status);
+    abort();
 }
 ```
-### button_process.c
-```c
-/**
- * @file button_process.c
- * @author Cristiano Silva de Souza (cristianosstec@gmail.com)
- * @brief 
- * @version 0.1.0
- * @date 2020-02-06
- * 
- * @copyright Copyright (c) 2020
- * 
- */
 
-#include <button.h>
-#include <queue.h>
-#include <stdlib.h>
-#include <string.h>
-#include <stdio.h>
-#include <unistd.h>
+## *button_interface*
+descrever o código
+## *led_interface*
+descrever o código
 
-#define _1MS    1000
-#define BUFFER_SIZE     1024
+## Compilando, Executando e Matando os processos
+Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
 
-#define QUEUE_ID    100
+## Compilando
+Para faciliar a execução do exemplo, o exemplo proposto foi criado baseado em uma interface, onde é possível selecionar se usará o hardware da Raspberry Pi 3, ou se a interação com o exemplo vai ser através de input feito por FIFO e o output visualizado através de LOG.
 
-static void inputHandler(void);
+### Clonando o projeto
+Pra obter uma cópia do projeto execute os comandos a seguir:
 
-static Button_t button = {
-        .gpio.pin = 7,
-        .gpio.eMode = eModeInput,
-        .ePullMode = ePullModePullUp,
-        .eIntEdge = eIntEdgeFalling,
-        .cb = inputHandler
-    };
-
-static int queue_id = -1;
-static queue_st queue = {
-    .queueType = 1
-};
-
-int main(int argc, char const *argv[])
-{
-    if(Button_init(&button))
-        return EXIT_FAILURE;
-
-    if((queue_id = queue_init(QUEUE_ID))  < 0)
-        return EXIT_FAILURE;
-
-    while(1)
-        usleep(_1MS);
-
-    queue_destroy(queue_id);
-
-    return 0;
-}
-
-static void inputHandler(void)
-{
-    static int state = 0;
-    if(!Button_read(&button)){
-        usleep(_1MS * 40);
-        while(!Button_read(&button));
-        usleep(_1MS * 40);
-        state ^= 0x01;
-
-        memset(queue.bData, 0, sizeof(queue.bData));
-        snprintf(queue.bData, 32, "state = %d\n", state);
-        queue_send(queue_id, &queue, strlen(queue.bData));        
-    }
-}
-
+```bash
+$ git clone https://github.com/NakedSolidSnake/Raspberry_IPC_Queue_SystemV
+$ cd Raspberry_IPC_Queue_SystemV
+$ mkdir build && cd build
 ```
-### led_process.c
-```c
-/**
- * @file led_process.c
- * @author Cristiano Silva de Souza (cristianosstec@gmail.com)
- * @brief 
- * @version 0.1.0
- * @date 2020-02-06
- * 
- * @copyright Copyright (c) 2020
- * 
- */
 
-#include <led.h>
-#include <queue.h>
-#include <stdlib.h>
-#include <unistd.h>
-#include <stdio.h>
-#include <string.h>
+### Selecionando o modo
+Para selecionar o modo devemos passar para o cmake uma variável de ambiente chamada de ARCH, e pode-se passar os seguintes valores, PC ou RASPBERRY, para o caso de PC o exemplo terá sua interface preenchida com os sources presentes na pasta src/platform/pc, que permite a interação com o exemplo através de FIFO e LOG, caso seja RASPBERRY usará os GPIO's descritos no [artigo](https://github.com/NakedSolidSnake/Raspberry_lib_hardware#testando-a-instala%C3%A7%C3%A3o-e-as-conex%C3%B5es-de-hardware).
 
-#define QUEUE_ID 100
-
-LED_t led =
-    {
-        .gpio.pin = 0,
-        .gpio.eMode = eModeOutput
-    };
-
-static int queue_id = -1;
-
-static queue_st queue =
-    {
-    .queueType = 1
-    };
-
-int main(int argc, char const *argv[])
-{
-    int state_cur;
-    int state_old;
-
-    if (LED_init(&led))
-        return EXIT_FAILURE;
-
-    if((queue_id = queue_init(QUEUE_ID))  < 0)
-       return EXIT_FAILURE;
-
-    while (1)
-    {
-
-        if (queue_recv(queue_id, &queue, sizeof(queue.bData)) < 0)
-        {
-            continue;
-        }
-
-        sscanf(queue.bData, "state = %d", &state_cur);
-        memset(queue.bData, 0, sizeof(queue.bData));
-
-        if (state_cur != state_old)
-        {
-
-            state_old = state_cur;
-            LED_set(&led, (eState_t)state_cur);
-        }
-        usleep(1);
-    }    
-
-    return EXIT_SUCCESS;
-}
-
+#### Modo PC
+```bash
+$ cmake -DARCH=PC ..
+$ make
 ```
+
+#### Modo RASPBERRY
+```bash
+$ cmake -DARCH=RASPBERRY ..
+$ make
+```
+
+## Executando
+Para executar a aplicação execute o processo _*launch_processes*_ para lançar os processos *button_process* e *led_process* que foram determinados de acordo com o modo selecionado.
+
+```bash
+$ cd bin
+$ ./launch_processes
+```
+
+Uma vez executado podemos verificar se os processos estão rodando atráves do comando 
+```bash
+$ ps -ef | grep _process
+```
+
+O output 
+```bash
+cssouza  16871  3449  0 07:15 pts/4    00:00:00 ./button_process
+cssouza  16872  3449  0 07:15 pts/4    00:00:00 ./led_process
+```
+## Interagindo com o exemplo
+Dependendo do modo de compilação selecionado a interação com o exemplo acontece de forma diferente
+
+### MODO PC
+Para o modo PC, precisamos abrir um terminal e monitorar os LOG's
+```bash
+$ sudo tail -f /var/log/syslog | grep LED
+```
+
+Dessa forma o terminal irá apresentar somente os LOG's referente ao exemplo.
+
+Para simular o botão, o processo em modo PC cria uma FIFO para permitir enviar comandos para a aplicação, dessa forma todas as vezes que for enviado o número 0 irá logar no terminal onde foi configurado para o monitoramento, segue o exemplo
+```bash
+colocar comando de interacao de fila
+```
+
+Output do LOG quando enviado o comando algumas vezez
+```bash
+colocar log
+```
+
+### MODO RASPBERRY
+Para o modo RASPBERRY a cada vez que o botão for pressionado irá alternar o estado do LED.
+
+## Matando os processos
+Para matar os processos criados execute o script kill_process.sh
+```bash
+$ cd bin
+$ ./kill_process.sh
+```
+
 ## Conclusão
+Preencher
+
+## Referência
+* [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_Queue_SystemV)
+* [Mark Mitchell, Jeffrey Oldham, and Alex Samuel - Advanced Linux Programming](https://www.amazon.com.br/Advanced-Linux-Programming-CodeSourcery-LLC/dp/0735710430)
+* [fork, exec e daemon](https://github.com/NakedSolidSnake/Raspberry_fork_exec_daemon)
+* [biblioteca hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware)
