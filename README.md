@@ -31,10 +31,10 @@ Existem três IPC's conhecidos como Queue, Semaphore e Shared Memory. Para esses
 System V, também conhecido como AT&T System V, é uma das muitas versões do sistema operacional Unix. Foi originalmente desenvolvido pela AT&T e teve o primeiro lançamento em 1983. Com um total de 4 grandes versões de System V sendo as versões 1, 2, 3 e 4. System V Release 4(SVR4) é a versão que obteve mais sucesso e se tornou base para alguns recursos do UNIX, como o famoso initd que corresponde ao script de inicialização e de desligamento do sistema, o System V Interface Definition (SVID) é uma definição padrão de como o System V funciona. Para o link original clique [aqui](https://www.programmersought.com/article/93453872969/)
 
 ## POSIX
-POSIX (Portable Operating System Interface for Computing Systems) é um conjunto de padrões desenvolvido pela IEEE e ISO/IEC. O padrão é basedo nas práticas e experiências existentes do UNIX, e descreve a interface de chamada de servição do sistema operacional, que é usado para garantir que a aplicação pode ser portada e ser executada em uma gama de sistemas operacionais a nível de código fonte. Para o link original clique [aqui](https://www.programmersought.com/article/93453872969/)
+POSIX (Portable Operating System Interface for Computing Systems) é um conjunto de padrões desenvolvido pela IEEE e ISO/IEC. O padrão é basedo nas práticas e experiências existentes do UNIX, e descreve a interface de chamada de serviços do sistema operacional, que é usado para garantir que a aplicação pode ser portada e ser executada em uma gama de sistemas operacionais a nível de código fonte. Para o link original clique [aqui](https://www.programmersought.com/article/93453872969/)
 
 ## Queue System V
-Queue System V permite que os processos troquem dados na forma de mensagens. Para se referir as mensagens é necessário um identificador. Comunicações feitas através de queues são orientadas a mensagens. As mensagens podem ser recuperadas no formato first-in, first-out ou pelo seu tipo e existem idenpendente de processos.
+Queue System V permite que os processos troquem dados na forma de mensagens. Para se referir as mensagens é necessário um identificador. Comunicações feitas através de queues são orientadas a mensagens. As mensagens podem ser recuperadas no formato first-in, first-out ou pelo seu tipo e existem indenpendente de processos.
 
 ## Systemcalls
 
@@ -62,7 +62,7 @@ Para inserir mensagens na Queue é necessário preencher a estrutura com o tipo 
 
 int msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg);
 ```
-Para receber as mensagens da Queue é necessário um identificador, a estrutura com o tipo e o buffer, o tamanoh da mensagem esperada, o tipo da mensagem e a flag IPC_NOWAIT. Neste caso a flag IPC_NOWAIT não aguarda a chegada de uma mensagem, para aguardar normalmente é usado o 0.
+Para receber as mensagens da Queue é necessário um identificador, a estrutura com o tipo e o buffer, o tamanho da mensagem esperada, o tipo da mensagem e a flag IPC_NOWAIT. Neste caso a flag IPC_NOWAIT não aguarda a chegada de uma mensagem, para aguardar normalmente é usado o 0.
 ```c
 #include <sys/types.h> /* For portability */
 #include <sys/msg.h>
@@ -176,7 +176,7 @@ bool Queue_Destroy(Queue_t *queue)
 
 Para demonstrar o uso desse IPC, será utilizado o modelo Produtor/Consumidor, onde o processo Produtor(_button_process_) vai escrever seu estado em uma mensagem, e inserir na queue, e o Consumidor(_led_process_) vai ler a mensagem da queue e aplicar ao seu estado interno. A aplicação é composta por três executáveis sendo eles:
 
-* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ atráves da combinação _fork_ e _exec_
+* _launch_processes_ - é responsável por lançar os processos _button_process_ e _led_process_ através da combinação _fork_ e _exec_
 * _button_interface_ - é responsável por ler o GPIO em modo de leitura da Raspberry Pi e escrever o estado em uma mensagem e inserir na queue
 * _led_interface_ - é responsável por ler a mensagem da queue e aplicar em um GPIO configurado como saída
 
@@ -318,7 +318,7 @@ while (true)
 Para compilar e testar o projeto é necessário instalar a biblioteca de [hardware](https://github.com/NakedSolidSnake/Raspberry_lib_hardware) necessária para resolver as dependências de configuração de GPIO da Raspberry Pi.
 
 ## Compilando
-Para faciliar a execução do exemplo, o exemplo proposto foi criado baseado em uma interface, onde é possível selecionar se usará o hardware da Raspberry Pi 3, ou se a interação com o exemplo vai ser através de input feito por FIFO e o output visualizado através de LOG.
+Para facilitar a execução do exemplo, o exemplo proposto foi criado baseado em uma interface, onde é possível selecionar se usará o hardware da Raspberry Pi 3, ou se a interação com o exemplo vai ser através de input feito por FIFO e o output visualizado através de LOG.
 
 ### Clonando o projeto
 Pra obter uma cópia do projeto execute os comandos a seguir:
@@ -422,7 +422,7 @@ $ ./kill_process.sh
 ```
 
 ## Conclusão
-A Queue é um IPC extremamente versátil principalmente por poder enviar mensagens para um processo específico, de forma a evitar que ocorra concorrência no acesso aos dados, já que a mensagem é destinada ao processo de interesse. A desvantagem no seu uso é para o caso de removê-la, pois a queue existe independente do processo, sendo assim caso o processo deixe de existir a queue permanecerá, devido a essa caracteristica as vezes é necessário garantir que a queue seja destruída atráves de scripts, garantindo assim que não haverá mensagens antigas, que por outro lado pode ser até uma vantagem, caso o processo que esteja realizando a leitura venha cair poderá ser recuperado e processar as mensagens que foram enfileiradas.
+A Queue é um IPC extremamente versátil principalmente por poder enviar mensagens para um processo específico, de forma a evitar que ocorra concorrência no acesso aos dados, já que a mensagem é destinada ao processo de interesse. A desvantagem no seu uso é para o caso de removê-la, pois a queue existe independente do processo, sendo assim caso o processo deixe de existir a queue permanecerá, devido a essa característica as vezes é necessário garantir que a queue seja destruída através de scripts, garantindo assim que não haverá mensagens antigas, que por outro lado pode ser até uma vantagem, caso o processo que esteja realizando a leitura venha cair poderá ser recuperado e processar as mensagens que foram enfileiradas.
 
 ## Referência
 * [Link do projeto completo](https://github.com/NakedSolidSnake/Raspberry_IPC_Queue_SystemV)
